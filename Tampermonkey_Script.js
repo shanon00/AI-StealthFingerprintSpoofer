@@ -1,54 +1,72 @@
 // ==UserScript==
-// @name         SFCF Stealth Fingerprint Spoofer for CF - Firefox 127 Enhanced v6.0
+// @name        SFCF
+// @description This is your new file, start writing code
+// @match       *://*/*
+// ==/UserScript==
+// ==UserScript==
+// @name         Stealth Fingerprint Spoofer for CF - Firefox 127 Enhanced
 // @namespace    http://tampermonkey.net
-// @version      6.0
-// @description  增强版Firefox 127指纹伪装，优化指纹一致性与反检测能力，适配Cloudflare
+// @version      4.0
+// @description  增强版Firefox 127指纹伪装，绕过Cloudflare/反机器人检测，优化行为模拟与指纹一致性
 // @author       优化版
 // @match        *://*/*
 // @grant        none
-// @run-at       document-start  // 最早时机执行，避免初始指纹泄露
+// @run-at       document-start  // 更早执行，避免初始指纹泄露
+// ==/UserScript==
+// ==UserScript==
+// @name         Stealth Fingerprint Spoofer for CF - Safari 18 Enhanced
+// @namespace    http://tampermonkey.net
+// @version      5.0
+// @description  增强版Safari 18指纹伪装，修复跨平台指纹冲突，优化地理位置一致性
+// @author       优化版
+// @match        *://*/*
+// @grant        none
+// @run-at       document-start
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // Firefox 127核心配置（确保与UA完全匹配）
+    // 可配置参数（根据需求调整）
     const config = {
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0',
-        platform: 'Win32',  // Firefox 127在64位Windows上仍返回Win32
-        language: 'zh-CN',  // 可根据需求改为en-US等
-        languages: ['zh-CN', 'zh', 'en-US', 'en'],  // 符合真实浏览器语言优先级
+        // 匹配Safari 18的用户代理
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15',
+        platform: 'MacIntel',
+        language: 'zh-CN',
+        languages: ['zh-CN', 'zh', 'en-US', 'en'],
         screen: {
-            width: 1920 + Math.floor(Math.random() * 200),  // 随机1920-2120px（避免固定值）
-            height: 1080 + Math.floor(Math.random() * 100), // 随机1080-1180px
+            width: 1440 + Math.floor(Math.random() * 200),  // 常见macOS分辨率
+            height: 900 + Math.floor(Math.random() * 100),
             colorDepth: 24,
-            pixelRatio: 1 + Math.floor(Math.random() * 2)  // 1.0或2.0（常见缩放比例）
+            pixelRatio: 2  // 适配Retina屏幕
         },
-        hardwareConcurrency: 4 + Math.floor(Math.random() * 8),  // 4-12核（真实PC范围）
-        timezoneOffset: -480,  // 中国时区（UTC+8），可根据IP调整
-        vendor: '',  // Firefox无vendor信息
+        hardwareConcurrency: 8 + Math.floor(Math.random() * 4),  // Mac常见CPU核心数
+        timezoneOffset: -480,  // 中国时区（UTC+8）
+        webdriver: false,
+        vendor: 'Apple Inc.',
         product: 'Gecko',
-        renderer: 'ANGLE (Intel(R) UHD Graphics 630 Direct3D11 vs_5_0 ps_5_0)',  // 常见Intel显卡渲染信息
-        fonts: [  // Firefox 127默认字体（Windows）
-            'Arial', 'Arial Black', 'Comic Sans MS', 'Courier New',
-            'Georgia', 'Impact', 'Times New Roman', 'Trebuchet MS',
-            'Verdana', 'Microsoft YaHei', 'SimSun', 'SimHei'  // 包含中文字体（符合中文环境）
+        renderer: 'Apple GPU',
+        // 匹配macOS的字体列表
+        fonts: [
+            'Arial', 'Arial Hebrew', 'Arial Unicode MS', 'Apple Color Emoji',
+            'Baskerville', 'Chalkboard SE', 'Cochin', 'Comic Sans MS',
+            'Courier New', 'Gill Sans', 'Helvetica Neue', 'Lucida Grande',
+            'Marker Felt', 'Menlo', 'Microsoft Sans Serif', 'Monaco',
+            'Noteworthy', 'Optima', 'Palatino', 'Snell Roundhand',
+            'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'
         ]
     };
 
-    // 安全定义属性（避免原型链污染检测）
+    // 工具函数：安全重写属性
     const safeDefine = (obj, prop, value) => {
         if (Object.prototype.hasOwnProperty.call(obj, prop)) {
             Object.defineProperty(obj, prop, {
-                value: value,
-                writable: false,
-                configurable: false,
-                enumerable: true
+                value, writable: false, configurable: false, enumerable: true
             });
         }
     };
 
-    // 1. 强化Navigator属性（严格匹配Firefox 127）
+    // 1. 修复用户代理与平台一致性
     const fakeNavigator = {
         userAgent: config.userAgent,
         appVersion: config.userAgent,
@@ -56,80 +74,67 @@
         language: config.language,
         languages: config.languages,
         hardwareConcurrency: config.hardwareConcurrency,
-        webdriver: false,  // 关键：隐藏自动化标识
+        webdriver: config.webdriver,
         vendor: config.vendor,
         product: config.product,
         appCodeName: 'Mozilla',
         appName: 'Netscape',
         onLine: true,
         vendorSub: '',
-        productSub: '20100101',  // Firefox固定值
-        maxTouchPoints: 0,  // 桌面设备无触摸
+        productSub: '20100101',
+        maxTouchPoints: 0,
         doNotTrack: null,
-        pdfViewerEnabled: true,  // Firefox默认支持PDF
-        deviceMemory: undefined,  // Firefox 127无此属性
-        userAgentData: undefined,  // Firefox不支持userAgentData
-        scheduling: undefined,
-        userActivation: undefined,
-        connection: {  // 模拟家庭网络（Firefox 127支持connection属性）
-            type: 'wifi',
-            effectiveType: '4g',
-            rtt: 30 + Math.random() * 10,  // 30-40ms（家庭网络典型值）
-            downlink: 50 + Math.random() * 30  // 50-80Mbps
-        },
-        chrome: undefined,  // Firefox无chrome属性
-        // Firefox特有插件（严格匹配默认插件）
+        pdfViewerEnabled: true,
+        deviceMemory: 16,  // 匹配macOS常见内存
+        userAgentData: undefined,
+        // Safari特有属性
+        safari: { pushNotification: { toString: () => '[object SafariRemoteNotification]' } },
+        webkitTemporaryStorage: { queryUsageAndQuota: () => Promise.resolve() },
+        webkitPersistentStorage: { queryUsageAndQuota: () => Promise.resolve() },
+        // 插件列表（macOS Safari默认）
         plugins: Object.freeze([
             Object.freeze({
-                name: 'PDF Viewer',
-                filename: 'pdf.js',
-                description: 'Portable Document Format viewer',
-                length: 1,
-                item: (i) => i === 0 ? { type: 'application/pdf', suffixes: 'pdf' } : null
+                name: 'QuickTime Plugin',
+                filename: 'libnpqtplugin.dylib',
+                description: 'QuickTime Plugin 7.7.9',
+                length: 0
             }),
             Object.freeze({
-                name: 'Widevine Content Decryption Module',
-                filename: 'widevinecdm.dll',
-                description: 'Widevine CDM 4.10.2710.0',
-                length: 1,
-                item: (i) => i === 0 ? { type: 'application/x-ppapi-widevine-cdm', suffixes: '' } : null
+                name: 'Shockwave Flash',
+                filename: 'FlashPlayer.plugin',
+                description: 'Shockwave Flash 32.0 r0',
+                length: 0
             }),
             Object.freeze({
-                name: 'OpenH264 Video Codec provided by Cisco Systems, Inc.',
-                filename: 'openh264.dll',
-                description: 'H.264/AVC video codec',
-                length: 1,
-                item: (i) => i === 0 ? { type: 'video/mp4', suffixes: 'mp4' } : null
+                name: 'Adobe Acrobat',
+                filename: 'AdobePDFViewer.plugin',
+                description: 'Adobe Acrobat Plug-in 2025.001.20135',
+                length: 0
             })
         ]),
-        // 匹配插件的MIME类型
+        // MIME类型
         mimeTypes: Object.freeze([
-            Object.freeze({ type: 'application/pdf', suffixes: 'pdf', enabledPlugin: navigator.plugins[0] }),
-            Object.freeze({ type: 'video/mp4', suffixes: 'mp4', enabledPlugin: navigator.plugins[2] }),
-            Object.freeze({ type: 'application/x-ppapi-widevine-cdm', suffixes: '', enabledPlugin: navigator.plugins[1] })
-        ]),
-        // Firefox特有：扩展安装触发器
-        InstallTrigger: {
-            install: () => {},
-            __proto__: { constructor: function InstallTrigger() {} }
-        }
+            Object.freeze({ type: 'application/pdf', suffixes: 'pdf', enabledPlugin: navigator.plugins[2] }),
+            Object.freeze({ type: 'application/x-shockwave-flash', suffixes: 'swf', enabledPlugin: navigator.plugins[1] }),
+            Object.freeze({ type: 'video/quicktime', suffixes: 'mov,qt', enabledPlugin: navigator.plugins[0] })
+        ])
     };
 
-    // 覆盖navigator属性（确保所有属性与Firefox一致）
+    // 覆盖navigator属性
     Object.keys(fakeNavigator).forEach(prop => {
         safeDefine(navigator, prop, fakeNavigator[prop]);
     });
 
-    // 2. 屏幕信息优化（更真实的桌面显示）
+    // 2. 屏幕信息与macOS匹配
     safeDefine(screen, 'width', config.screen.width);
     safeDefine(screen, 'height', config.screen.height);
     safeDefine(screen, 'availWidth', config.screen.width);
-    safeDefine(screen, 'availHeight', config.screen.height - 40);  // 扣除任务栏高度
+    safeDefine(screen, 'availHeight', config.screen.height - 22);  // macOS菜单栏高度
     safeDefine(screen, 'colorDepth', config.screen.colorDepth);
     safeDefine(screen, 'pixelDepth', config.screen.colorDepth);
-    safeDefine(window, 'devicePixelRatio', config.screen.pixelRatio);  // 1.0或2.0（常见缩放）
+    safeDefine(window, 'devicePixelRatio', config.screen.pixelRatio);
 
-    // 3. 时区伪装（不修改原型，避免检测）
+    // 3. 时区与地理位置一致性（结合IP位置）
     const originalDate = Date;
     Date = function(...args) {
         const date = new originalDate(...args);
@@ -140,172 +145,234 @@
     Date.now = originalDate.now;
     Date.parse = originalDate.parse;
 
-    // 4. Canvas指纹扰动（细微且自然）
+    // 4. 增强Canvas指纹伪装
     const originalCanvasGetContext = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function(type, options) {
         const context = originalCanvasGetContext.call(this, type, options);
         if (type === '2d' && context) {
-            const originalToDataURL = context.canvas.toDataURL;
-            context.canvas.toDataURL = function() {
-                // 随机扰动2-3个像素（避免过度修改）
-                const imageData = context.getImageData(0, 0, this.width, this.height);
-                const 扰动次数 = 2 + Math.floor(Math.random() * 2);
-                for (let i = 0; i < 扰动次数; i++) {
-                    const pos = Math.floor(Math.random() * imageData.data.length);
-                    // 轻微调整像素值（±1-2）
-                    imageData.data[pos] = (imageData.data[pos] + (Math.random() > 0.5 ? 1 : -1) * (1 + Math.floor(Math.random() * 2))) % 256;
-                }
-                context.putImageData(imageData, 0, 0);
-                return originalToDataURL.call(this);
+            // 存储原始方法
+            const originalFillText = context.fillText;
+            const originalStrokeText = context.strokeText;
+            const originalDrawImage = context.drawImage;
+            
+            // 修改文本渲染
+            context.fillText = function(text, x, y, maxWidth) {
+                // 轻微调整文本位置（模拟字体渲染差异）
+                const offsetX = Math.random() * 0.5 - 0.25;
+                const offsetY = Math.random() * 0.5 - 0.25;
+                return originalFillText.call(this, text, x + offsetX, y + offsetY, maxWidth);
             };
+            
+            context.strokeText = function(text, x, y, maxWidth) {
+                const offsetX = Math.random() * 0.5 - 0.25;
+                const offsetY = Math.random() * 0.5 - 0.25;
+                return originalStrokeText.call(this, text, x + offsetX, y + offsetY, maxWidth);
+            };
+            
+            // 修改图像渲染
+            context.drawImage = function(image, ...args) {
+                // 添加微小的透明度变化
+                const originalGlobalAlpha = this.globalAlpha;
+                this.globalAlpha = originalGlobalAlpha * (0.995 + Math.random() * 0.01);
+                const result = originalDrawImage.call(this, image, ...args);
+                this.globalAlpha = originalGlobalAlpha;
+                return result;
+            };
+            
+            // 干扰toDataURL
+            context.canvas.toDataURL = function() {
+                const original = this._toDataURL || this.toDataURL;
+                const data = original.apply(this, arguments);
+                // 随机替换几个字符（不影响显示但改变哈希）
+                if (data.length > 100) {
+                    const arr = data.split('');
+                    for (let i = 0; i < 5; i++) {
+                        const pos = 50 + Math.floor(Math.random() * (data.length - 100));
+                        arr[pos] = String.fromCharCode(arr[pos].charCodeAt(0) + (Math.random() > 0.5 ? 1 : -1));
+                    }
+                    return arr.join('');
+                }
+                return data;
+            };
+            // 保存原始方法用于后续调用
+            if (!context.canvas._toDataURL) {
+                context.canvas._toDataURL = context.canvas.toDataURL;
+            }
         }
         return context;
     };
 
-    // 5. WebGL信息强化（匹配Firefox 127显卡特征）
+    // 5. 完善WebGL伪装（匹配Safari）
     if (window.WebGLRenderingContext) {
         const originalWebGLGetParam = WebGLRenderingContext.prototype.getParameter;
         WebGLRenderingContext.prototype.getParameter = function(param) {
             const params = {
-                0x9246: '',  // VENDOR（Firefox默认空）
-                0x9247: config.renderer,  // RENDERER（模拟Intel显卡）
-                0x1F00: 'WebGL 1.0',  // Firefox 127 WebGL版本
-                0x1F01: 'OpenGL ES GLSL ES 1.00',
-                0x930B: 'Intel',  // UNMASKED_VENDOR_WEBGL（显卡厂商）
-                0x930C: 'Intel(R) UHD Graphics 630'  // 真实显卡型号
+                0x9246: config.vendor,  // VENDOR
+                0x9247: config.renderer,  // RENDERER
+                0x1F00: 'WebGL 2.0',  // Safari支持WebGL 2.0
+                0x1F01: 'OpenGL ES GLSL ES 3.00',
+                0x930B: 'WebKit',  // UNMASKED_VENDOR_WEBGL
+                0x930C: 'Apple GPU'  // UNMASKED_RENDERER_WEBGL
             };
             return params[param] || originalWebGLGetParam.call(this, param);
         };
-
-        // Firefox 127支持的WebGL扩展（避免多余扩展）
-        const originalGetExtensions = WebGLRenderingContext.prototype.getSupportedExtensions;
+        
+        // 添加Safari特有的WebGL扩展
+        const originalGetSupportedExtensions = WebGLRenderingContext.prototype.getSupportedExtensions;
         WebGLRenderingContext.prototype.getSupportedExtensions = function() {
-            const baseExtensions = originalGetExtensions.call(this) || [];
-            // 筛选Firefox常见扩展，移除Safari特有扩展
-            return baseExtensions.filter(ext => 
-                !ext.includes('WEBGL_compressed_texture_astc')  // 非Firefox默认
-            );
+            const extensions = originalGetSupportedExtensions.call(this) || [];
+            // 添加Safari特有的扩展
+            return [...extensions, 
+                'WEBGL_compressed_texture_astc', 
+                'WEBGL_compressed_texture_s3tc',
+                'WEBGL_debug_renderer_info',
+                'WEBGL_debug_shaders'
+            ];
         };
     }
 
-    // 6. 字体指纹优化（Firefox 127默认字体渲染）
+    // 6. 字体指纹伪装（macOS Safari字体列表）
     const originalMeasureText = CanvasRenderingContext2D.prototype.measureText;
     CanvasRenderingContext2D.prototype.measureText = function(text) {
-        // 随机选择Firefox字体，字体大小模拟系统默认（14-16px）
+        // 随机选择一种macOS字体
         const font = config.fonts[Math.floor(Math.random() * config.fonts.length)];
-        this.font = `${14 + Math.floor(Math.random() * 3)}px ${font}, sans-serif`;
+        this.font = `${14 + Math.floor(Math.random() * 4)}px ${font}`;
         return originalMeasureText.call(this, text);
     };
 
-    // 7. WebRTC彻底禁用（避免IP泄露）
-    ['RTCPeerConnection', 'webkitRTCPeerConnection', 'mozRTCPeerConnection', 'RTCIceGatherer', 'RTCIceCandidate'].forEach(key => {
+    // 7. 彻底禁用WebRTC
+    ['RTCPeerConnection', 'webkitRTCPeerConnection', 'mozRTCPeerConnection', 'RTCIceGatherer'].forEach(key => {
         safeDefine(window, key, undefined);
     });
 
-    // 8. 音频指纹微调（符合Firefox 127音频特征）
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-        const originalCreateOscillator = AudioContext.prototype.createOscillator;
-        AudioContext.prototype.createOscillator = function() {
-            const osc = originalCreateOscillator.call(this);
-            // 更细微的频率扰动（0.005Hz内）
-            osc.frequency.value += (Math.random() * 0.01 - 0.005);
-            return osc;
+    // 8. 音频指纹伪装
+    if (window.AudioContext) {
+        const originalAudioContext = window.AudioContext;
+        window.AudioContext = function(...args) {
+            const ctx = new originalAudioContext(...args);
+            // 调整采样率（macOS常见值）
+            ctx.sampleRate = 44100;
+            return ctx;
         };
+        window.AudioContext.prototype = originalAudioContext.prototype;
     }
 
-    // 9. 行为模拟升级（自然人类轨迹）
-    // 贝塞尔曲线生成鼠标轨迹（模拟加速度变化）
-    function bezierCurve(start, end, controlPoints = 2) {
-        const points = [start];
-        // 生成随机控制点（模拟人类手部抖动）
-        for (let i = 0; i < controlPoints; i++) {
-            points.push({
-                x: start.x + (end.x - start.x) * (i + 1) / (controlPoints + 1) + (Math.random() * 80 - 40),
-                y: start.y + (end.y - start.y) * (i + 1) / (controlPoints + 1) + (Math.random() * 80 - 40)
-            });
-        }
-        points.push(end);
-        return (t) => {
-            let x = 0, y = 0;
-            const n = points.length - 1;
-            for (let i = 0; i <= n; i++) {
-                const binom = combinations(n, i) * Math.pow(t, i) * Math.pow(1 - t, n - i);
-                x += binom * points[i].x;
-                y += binom * points[i].y;
-            }
-            return { x, y };
-        };
-    }
-
-    // 组合数计算（贝塞尔曲线辅助）
-    function combinations(n, k) {
-        if (k > n) return 0;
-        if (k === 0 || k === n) return 1;
-        return combinations(n - 1, k - 1) + combinations(n - 1, k);
-    }
-
-    // 自然鼠标移动（带加速/减速）
-    function simulateNaturalMouseMove() {
-        const startX = 100 + Math.random() * 300;
-        const startY = 100 + Math.random() * 300;
-        const endX = 500 + Math.random() * 400;
-        const endY = 400 + Math.random() * 300;
-        const duration = 800 + Math.random() * 500;  // 800-1300ms（人类移动耗时）
-        const curve = bezierCurve({ x: startX, y: startY }, { x: endX, y: endY });
-        const start = Date.now();
-
-        function moveStep() {
-            const t = (Date.now() - start) / duration;
-            if (t >= 1) return;
-            // 模拟人类操作：先加速后减速（t^2*(3-2t)曲线）
-            const easeT = t * t * (3 - 2 * t);
-            const { x, y } = curve(easeT);
-            document.dispatchEvent(new MouseEvent('mousemove', {
-                bubbles: true,
-                clientX: x,
-                clientY: y,
-                movementX: x - (window.lastMouseX || startX),
-                movementY: y - (window.lastMouseY || startY)
-            }));
-            window.lastMouseX = x;
-            window.lastMouseY = y;
-            requestAnimationFrame(moveStep);
-        }
-        moveStep();
-    }
-
-    // 行为序列（页面加载后随机触发）
-    window.addEventListener('DOMContentLoaded', () => {
-        // 延迟1-3秒开始（模拟用户浏览页面）
-        const delay = 1000 + Math.random() * 2000;
-        setTimeout(() => {
-            const actions = [
-                simulateNaturalMouseMove,
-                () => {  // 自然滚动（带停顿）
-                    const scrollAmount = 100 + Math.random() * 200;
-                    window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    // 9. 地理位置一致性（模拟新加坡访问）
+    if (navigator.geolocation) {
+        const originalGetLocation = navigator.geolocation.getCurrentPosition;
+        navigator.geolocation.getCurrentPosition = function(success, error, options) {
+            // 模拟新加坡位置（1.2897,103.8501）附近的随机点
+            const position = {
+                coords: {
+                    latitude: 1.2897 + (Math.random() * 0.01 - 0.005),
+                    longitude: 103.8501 + (Math.random() * 0.01 - 0.005),
+                    accuracy: 100 + Math.random() * 200,
+                    altitude: null,
+                    altitudeAccuracy: null,
+                    heading: null,
+                    speed: null
                 },
-                () => {  // 随机点击可交互元素
-                    const clickable = document.querySelectorAll('a, button, [role="button"]');
+                timestamp: Date.now()
+            };
+            // 延迟返回（模拟网络请求）
+            setTimeout(() => success(position), 500 + Math.random() * 500);
+            return {
+                cancel: () => {}
+            };
+        };
+    }
+
+    // 10. 模拟macOS特有行为
+    const simulateMacBehavior = () => {
+        // 模拟Command键使用（macOS特有）
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Meta') {  // Command键
+                // 随机触发一些macOS常见快捷键行为
+                setTimeout(() => {
+                    const actions = [
+                        () => document.execCommand('copy'),
+                        () => document.execCommand('paste'),
+                        () => document.execCommand('selectAll'),
+                        () => {
+                            const focusable = document.querySelector('input, textarea, [contenteditable]');
+                            if (focusable) focusable.focus();
+                        }
+                    ];
+                    actions[Math.floor(Math.random() * actions.length)]();
+                }, 100 + Math.random() * 200);
+            }
+        });
+    };
+
+    // 11. 行为模拟
+    window.addEventListener('DOMContentLoaded', () => {
+        // 延迟开始（模拟用户阅读）
+        const delay = 1500 + Math.random() * 4000;
+        setTimeout(() => {
+            // 执行macOS特有行为模拟
+            simulateMacBehavior();
+            
+            // 随机执行一系列用户行为
+            const actions = [
+                // 模拟macOS风格的滚动（平滑但有弹性）
+                () => {
+                    const scrollY = window.scrollY;
+                    const targetY = scrollY + (Math.random() > 0.5 ? 200 : -200);
+                    window.scrollTo({
+                        top: Math.max(0, Math.min(document.body.scrollHeight - window.innerHeight, targetY)),
+                        behavior: 'smooth'
+                    });
+                },
+                // 模拟点击
+                () => {
+                    const clickable = document.querySelectorAll('button, a, [role="button"]');
                     if (clickable.length > 0) {
                         const target = clickable[Math.floor(Math.random() * clickable.length)];
-                        target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                        const rect = target.getBoundingClientRect();
+                        const x = rect.left + rect.width / 2;
+                        const y = rect.top + rect.height / 2;
+                        
+                        // 先移动到目标元素
+                        simulateNaturalMouseMove(window.lastMouseX || x, window.lastMouseY || y, x, y);
+                        
+                        // 延迟点击
+                        setTimeout(() => {
+                            target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
+                            setTimeout(() => {
+                                target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
+                                target.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+                            }, 50 + Math.random() * 100);
+                        }, 800 + Math.random() * 500);
                     }
+                },
+                // 模拟macOS特有的捏合手势（在触摸板上）
+                () => {
+                    const event = new WheelEvent('wheel', {
+                        bubbles: true,
+                        clientX: window.innerWidth / 2,
+                        clientY: window.innerHeight / 2,
+                        deltaX: 0,
+                        deltaY: 0,
+                        deltaZ: Math.random() > 0.5 ? 100 : -100,  // 缩放方向
+                        deltaMode: WheelEvent.DOM_DELTA_PIXEL,
+                        metaKey: true  // Command键按下（macOS缩放）
+                    });
+                    document.dispatchEvent(event);
                 }
             ];
-            // 随机执行1-3个行为（间隔2-4秒）
-            const actionCount = 1 + Math.floor(Math.random() * 3);
-            for (let i = 0; i < actionCount; i++) {
-                setTimeout(actions[i % actions.length], i * (2000 + Math.random() * 2000));
+            
+            // 随机执行2-4个行为
+            const count = 2 + Math.floor(Math.random() * 3);
+            for (let i = 0; i < count; i++) {
+                setTimeout(actions[i % actions.length], i * (3000 + Math.random() * 4000));
             }
         }, delay);
     });
 
-    // 7. 清除脚本痕迹（防Tampermonkey检测）
+    // 12. 隐藏脚本痕迹
     safeDefine(window, 'GM_info', undefined);
     safeDefine(window, 'tampermonkey', undefined);
-    safeDefine(navigator, '__proto__', Navigator.prototype);  // 锁定原型链
+    safeDefine(navigator, '__proto__', Navigator.prototype);
 
-    console.log('Firefox 127 Enhanced Spoofer v6.0 - Active');
+    console.log('Stealth Spoofer Enhanced v5.0 - Safari 18 (macOS) Mode');
 })();
